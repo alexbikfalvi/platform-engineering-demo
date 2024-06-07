@@ -1,53 +1,54 @@
 import os
 from utils import *
 
-if (
-    DT_RW_API_TOKEN is None or
-    DT_ENV_NAME is None or
-    DT_ENV is None or
-    DT_OAUTH_CLIENT_ID is None or
-    DT_OAUTH_CLIENT_SECRET is None or
-    DT_OAUTH_ACCOUNT_URN is None
-):
-    exit("Missing mandatory environment variables. Cannot proceed. Exiting.")
+if TOOL_MODE.lower() == "dt":
+    if (
+        DT_RW_API_TOKEN is None or
+        DT_ENV_NAME is None or
+        DT_ENV is None or
+        DT_OAUTH_CLIENT_ID is None or
+        DT_OAUTH_CLIENT_SECRET is None or
+        DT_OAUTH_ACCOUNT_URN is None
+    ):
+        exit("Missing mandatory environment variables. Cannot proceed. Exiting.")
 
-# Build DT environment URLs
-DT_TENANT_APPS, DT_TENANT_LIVE = build_dt_urls(dt_env_name=DT_ENV_NAME, dt_env=DT_ENV)
+    # Build DT environment URLs
+    DT_TENANT_APPS, DT_TENANT_LIVE = build_dt_urls(dt_env_name=DT_ENV_NAME, dt_env=DT_ENV)
+    
+    # Get correct SSO URL
+    DT_SSO_TOKEN_URL = get_sso_token_url(dt_env=DT_ENV)
 
-# Get correct SSO URL
-DT_SSO_TOKEN_URL = get_sso_token_url(dt_env=DT_ENV)
-
-# Create other DT tokens
-DT_ALL_INGEST_TOKEN = create_dt_api_token(token_name="[devrel demo] DT_ALL_INGEST_TOKEN", scopes=[
-    "bizevents.ingest",
-    "events.ingest",
-    "logs.ingest",
-    "metrics.ingest",
-    "openTelemetryTrace.ingest",
-    "DataExport", 
-    "entities.read", 
-    "settings.read", 
-    "settings.write", 
-    "activeGateTokenManagement.create"
-], dt_rw_api_token=DT_RW_API_TOKEN, dt_tenant_live=DT_TENANT_LIVE)
-DT_OP_TOKEN = create_dt_api_token(token_name="[devrel demo] DT_OP_TOKEN", scopes=[
-    "InstallerDownload",
-    "DataExport", 
-    "entities.read", 
-    "settings.read",
-    "settings.write", 
-    "activeGateTokenManagement.create"
+    # Create other DT tokens
+    DT_ALL_INGEST_TOKEN = create_dt_api_token(token_name="[devrel demo] DT_ALL_INGEST_TOKEN", scopes=[
+        "bizevents.ingest",
+        "events.ingest",
+        "logs.ingest",
+        "metrics.ingest",
+        "openTelemetryTrace.ingest",
+        "DataExport", 
+        "entities.read", 
+        "settings.read", 
+        "settings.write", 
+        "activeGateTokenManagement.create"
     ], dt_rw_api_token=DT_RW_API_TOKEN, dt_tenant_live=DT_TENANT_LIVE)
-DT_MONACO_TOKEN = create_dt_api_token(token_name="[devrel demo] DT_MONACO_TOKEN", scopes=[
-    "settings.read",
-    "settings.write",
-    "slo.read",
-    "slo.write",
-    "DataExport",
-    "ExternalSyntheticIntegration",
-    "ReadConfig",
-    "WriteConfig"
-], dt_rw_api_token=DT_RW_API_TOKEN, dt_tenant_live=DT_TENANT_LIVE)
+    DT_OP_TOKEN = create_dt_api_token(token_name="[devrel demo] DT_OP_TOKEN", scopes=[
+        "InstallerDownload",
+        "DataExport", 
+        "entities.read", 
+        "settings.read",
+        "settings.write", 
+        "activeGateTokenManagement.create"
+        ], dt_rw_api_token=DT_RW_API_TOKEN, dt_tenant_live=DT_TENANT_LIVE)
+    DT_MONACO_TOKEN = create_dt_api_token(token_name="[devrel demo] DT_MONACO_TOKEN", scopes=[
+        "settings.read",
+        "settings.write",
+        "slo.read",
+        "slo.write",
+        "DataExport",
+        "ExternalSyntheticIntegration",
+        "ReadConfig",
+        "WriteConfig"
+    ], dt_rw_api_token=DT_RW_API_TOKEN, dt_tenant_live=DT_TENANT_LIVE)
 
 ## Keptn
 # Should Keptn be installed or not?
@@ -74,9 +75,10 @@ if TOOL_MODE.lower() == "oss":
     except:
         print("Exception caught renaming (to remove) DT files. No big deal. You're probably re-running this script. Continuing.")
 
-# Set DT GEOLOCATION based on env type used
-# TODO: Find a better way here. If this was widely used, all load would be on one GEOLOCATION.
-DT_GEOLOCATION = get_geolocation(dt_env=DT_ENV)
+if TOOL_MODE.lower() == "dt":
+    # Set DT GEOLOCATION based on env type used
+    # TODO: Find a better way here. If this was widely used, all load would be on one GEOLOCATION.
+    DT_GEOLOCATION = get_geolocation(dt_env=DT_ENV)
 
 # Delete cluster first, in case this is a re-run
 run_command(["kind", "delete", "cluster"])
@@ -149,20 +151,22 @@ git_commit(target_file="-A", commit_msg="update GITHUB_CODESPACES_PORT_FORWARDIN
 
 
 ###### Upload DT Assets
-# Notebooks
-type = "notebook"
-upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/notebooks/analyze-argocd-notification-events.json", name="[devrel demo] ArgoCD: Analyze Notification Events", type=type, dt_tenant_apps=DT_TENANT_APPS)
-upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/notebooks/argocd-log-analytics.json", name="[devrel demo] ArgoCD: Log Analytics", type=type, dt_tenant_apps=DT_TENANT_APPS)
-upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/notebooks/platform-engineering-walkthrough.json", name="[devrel demo] Platform Engineering Demo Walkthrough", type=type, dt_tenant_apps=DT_TENANT_APPS)
-# Dashboards
-type = "dashboard"
-upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/argocd-lifecycle-dashboard.json", name="[devrel demo] ArgoCD: Lifecycle Dashboard", type=type, dt_tenant_apps=DT_TENANT_APPS)
-upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/argocd-platform-observability.json", name="[devrel demo] ArgoCD: Platform Observability", type=type, dt_tenant_apps=DT_TENANT_APPS)
-upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/backstage-error-analysis.json", name="[devrel demo] Backstage: Error Analysis", type=type, dt_tenant_apps=DT_TENANT_APPS)
-upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/platform-observability-cockpit.json", name="[devrel demo] Platform Observability Cockpit", type=type, dt_tenant_apps=DT_TENANT_APPS)
-upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/team-ownership-dashboard.json", name="[devrel demo] Team Ownership Dashboard", type=type, dt_tenant_apps=DT_TENANT_APPS)
-# Workflows
-upload_dt_workflow_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/workflows/lifecycle-events-workflow.json", name="[devrel demo] Lifecycle Events Workflow", dt_tenant_apps=DT_TENANT_APPS)
+
+if TOOL_MODE.lower() == "dt":
+    # Notebooks
+    type = "notebook"
+    upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/notebooks/analyze-argocd-notification-events.json", name="[devrel demo] ArgoCD: Analyze Notification Events", type=type, dt_tenant_apps=DT_TENANT_APPS)
+    upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/notebooks/argocd-log-analytics.json", name="[devrel demo] ArgoCD: Log Analytics", type=type, dt_tenant_apps=DT_TENANT_APPS)
+    upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/notebooks/platform-engineering-walkthrough.json", name="[devrel demo] Platform Engineering Demo Walkthrough", type=type, dt_tenant_apps=DT_TENANT_APPS)
+    # Dashboards
+    type = "dashboard"
+    upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/argocd-lifecycle-dashboard.json", name="[devrel demo] ArgoCD: Lifecycle Dashboard", type=type, dt_tenant_apps=DT_TENANT_APPS)
+    upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/argocd-platform-observability.json", name="[devrel demo] ArgoCD: Platform Observability", type=type, dt_tenant_apps=DT_TENANT_APPS)
+    upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/backstage-error-analysis.json", name="[devrel demo] Backstage: Error Analysis", type=type, dt_tenant_apps=DT_TENANT_APPS)
+    upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/platform-observability-cockpit.json", name="[devrel demo] Platform Observability Cockpit", type=type, dt_tenant_apps=DT_TENANT_APPS)
+    upload_dt_document_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/dashboards/team-ownership-dashboard.json", name="[devrel demo] Team Ownership Dashboard", type=type, dt_tenant_apps=DT_TENANT_APPS)
+    # Workflows
+    upload_dt_workflow_asset(sso_token_url=DT_SSO_TOKEN_URL, path="dynatraceassets/workflows/lifecycle-events-workflow.json", name="[devrel demo] Lifecycle Events Workflow", dt_tenant_apps=DT_TENANT_APPS)
 
 ## Lets get started with Kind
 # Create cluster
@@ -233,28 +237,41 @@ if ARGOCD_TOKEN is None or ARGOCD_TOKEN == "":
 
 output = run_command(["kubectl", "config", "set-context", "--current", "--namespace=default"])
 
-# create dt-details secret in opentelemetry namespace
-output = run_command(["kubectl", "-n", "opentelemetry", "create", "secret", "generic", "dt-details", f"--from-literal=DT_URL={DT_TENANT_LIVE}", f"--from-literal=DT_OTEL_ALL_INGEST_TOKEN={DT_ALL_INGEST_TOKEN}"])
+if TOOL_MODE.lower() == "dt":
+    # create dt-details secret in opentelemetry namespace
+    output = run_command(["kubectl", "-n", "opentelemetry", "create", "secret", "generic", "dt-details", f"--from-literal=DT_URL={DT_TENANT_LIVE}", f"--from-literal=DT_OTEL_ALL_INGEST_TOKEN={DT_ALL_INGEST_TOKEN}"])
 
 # create backstage-details secret in backstage namespace
-output = run_command(["kubectl", "-n", "backstage", "create", "secret", "generic", "backstage-secrets",
-                      f"--from-literal=BASE_DOMAIN={CODESPACE_NAME}",
-                      f"--from-literal=BACKSTAGE_PORT_NUMBER={BACKSTAGE_PORT_NUMBER}",
-                      f"--from-literal=ARGOCD_PORT_NUMBER={ARGOCD_PORT_NUMBER}",
-                      f"--from-literal=ARGOCD_TOKEN={ARGOCD_TOKEN}",
-                      f"--from-literal=GITHUB_TOKEN={GITHUB_TOKEN}",
-                      f"--from-literal=GITHUB_ORG={github_org}",
-                      f"--from-literal=GITHUB_REPO={GITHUB_REPO_NAME}",
-                      f"--from-literal=GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN={GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}",
-                      f"--from-literal=DT_TENANT_NAME={DT_ENV_NAME}",
-                      f"--from-literal=DT_TENANT_LIVE={DT_TENANT_LIVE}",
-                      f"--from-literal=DT_TENANT_APPS={DT_TENANT_APPS}",
-                      f"--from-literal=DT_SSO_TOKEN_URL={DT_SSO_TOKEN_URL}",
-                      f"--from-literal=DT_OAUTH_CLIENT_ID={DT_OAUTH_CLIENT_ID}",
-                      f"--from-literal=DT_OAUTH_CLIENT_SECRET={DT_OAUTH_CLIENT_SECRET}",
-                      f"--from-literal=DT_OAUTH_ACCOUNT_URN={DT_OAUTH_ACCOUNT_URN}",
-                      f"--from-literal=DT_ALL_INGEST_TOKEN={DT_ALL_INGEST_TOKEN}"
-                    ])
+if TOOL_MODE.lower() == "dt":
+    output = run_command(["kubectl", "-n", "backstage", "create", "secret", "generic", "backstage-secrets",
+                          f"--from-literal=BASE_DOMAIN={CODESPACE_NAME}",
+                          f"--from-literal=BACKSTAGE_PORT_NUMBER={BACKSTAGE_PORT_NUMBER}",
+                          f"--from-literal=ARGOCD_PORT_NUMBER={ARGOCD_PORT_NUMBER}",
+                          f"--from-literal=ARGOCD_TOKEN={ARGOCD_TOKEN}",
+                          f"--from-literal=GITHUB_TOKEN={GITHUB_TOKEN}",
+                          f"--from-literal=GITHUB_ORG={github_org}",
+                          f"--from-literal=GITHUB_REPO={GITHUB_REPO_NAME}",
+                          f"--from-literal=GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN={GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}",
+                          f"--from-literal=DT_TENANT_NAME={DT_ENV_NAME}",
+                          f"--from-literal=DT_TENANT_LIVE={DT_TENANT_LIVE}",
+                          f"--from-literal=DT_TENANT_APPS={DT_TENANT_APPS}",
+                          f"--from-literal=DT_SSO_TOKEN_URL={DT_SSO_TOKEN_URL}",
+                          f"--from-literal=DT_OAUTH_CLIENT_ID={DT_OAUTH_CLIENT_ID}",
+                          f"--from-literal=DT_OAUTH_CLIENT_SECRET={DT_OAUTH_CLIENT_SECRET}",
+                          f"--from-literal=DT_OAUTH_ACCOUNT_URN={DT_OAUTH_ACCOUNT_URN}",
+                          f"--from-literal=DT_ALL_INGEST_TOKEN={DT_ALL_INGEST_TOKEN}"
+                        ])
+if TOOL_MODE.lower() == "oss":
+    output = run_command(["kubectl", "-n", "backstage", "create", "secret", "generic", "backstage-secrets",
+                          f"--from-literal=BASE_DOMAIN={CODESPACE_NAME}",
+                          f"--from-literal=BACKSTAGE_PORT_NUMBER={BACKSTAGE_PORT_NUMBER}",
+                          f"--from-literal=ARGOCD_PORT_NUMBER={ARGOCD_PORT_NUMBER}",
+                          f"--from-literal=ARGOCD_TOKEN={ARGOCD_TOKEN}",
+                          f"--from-literal=GITHUB_TOKEN={GITHUB_TOKEN}",
+                          f"--from-literal=GITHUB_ORG={github_org}",
+                          f"--from-literal=GITHUB_REPO={GITHUB_REPO_NAME}",
+                          f"--from-literal=GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN={GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+                        ])
 
 # Create secret for OneAgent in dynatrace namespace
 if TOOL_MODE.lower() == "dt":
@@ -265,7 +282,8 @@ if TOOL_MODE.lower() == "dt":
         ])
 
 # Create monaco-secret in monaco namespace
-output = run_command(["kubectl", "-n", "monaco", "create", "secret", "generic", "monaco-secret", f"--from-literal=monacoToken={DT_MONACO_TOKEN}"])
+if TOOL_MODE.lower() == "dt":
+    output = run_command(["kubectl", "-n", "monaco", "create", "secret", "generic", "monaco-secret", f"--from-literal=monacoToken={DT_MONACO_TOKEN}"])
 # Create monaco-secret in dynatrace namespace
 if TOOL_MODE.lower() == "dt":
     output = run_command(["kubectl", "-n", "dynatrace", "create", "secret", "generic", "monaco-secret", f"--from-literal=monacoToken={DT_MONACO_TOKEN}"])
